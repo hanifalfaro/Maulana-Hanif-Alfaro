@@ -1,0 +1,153 @@
+//#include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <FirebaseArduino.h>
+#include <time.h>
+
+#define FIREBASE_HOST "celenganpintar.firebaseio.com"
+#define FIREBASE_AUTH "x0R76y0UaEUnZG7SCPcm5JGmXeXnuVvgfnZ4dguQ"
+#define WIFI_SSID "MOZA_FAZNET"
+#define WIFI_PASSWORD "rumahmozaisharia3no13"
+
+#define PIN_S1 4
+#define PIN_S2 14
+#define PIN_S3 12
+#define PIN_S4 13
+
+String satu = "100";
+String dua = "200";
+String lima = "500";
+String nol = "1000";
+long totalkoin = 0;
+int nseratus, nduaratus, nlimaratus, nseribu = 0;
+int koinseratus, koinduaratus, koinlimaratus, koinseribu = 0;
+int flags1, flags2, flags3, flags4 = 0;
+float data1, data2, data3, data4, datalcd = 0;
+int jdata = 1;
+
+const char* ntpServer      = "us.pool.ntp.org";
+const long  gmtOffset_sec   = 3600*7;//GMT+7
+const int   daylightOffset_sec  = 0;
+char pukul[69], tanggal[69];
+
+void setup() {
+
+  pinMode(PIN_S1, INPUT);
+  pinMode(PIN_S2, INPUT);
+  pinMode(PIN_S3, INPUT);
+  pinMode(PIN_S4, INPUT);
+  Serial.begin(115200);
+//  EEPROM.begin(512);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting...");
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("Connected");
+  Serial.println(WiFi.localIP());
+
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  unsigned timeout = 5000;
+  unsigned start = millis();
+  while (!time(nullptr))
+  {
+    Serial.print(".");
+    delay(1000);
+  }
+
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+}
+
+void loop() {
+
+  time_t rawtime;
+  struct tm * timeinfo;
+  time (&rawtime);
+  timeinfo = localtime (&rawtime);
+  strftime (pukul, 80, "%H:%M:%S", timeinfo);
+  strftime (tanggal, 80, "%A, %d %B %Y", timeinfo);
+  
+  int hasil1 = digitalRead(PIN_S1);
+  int hasil2 = digitalRead(PIN_S2);
+  int hasil3 = digitalRead(PIN_S3);
+  int hasil4 = digitalRead(PIN_S4);
+  
+  if(hasil1 == LOW ){
+    if(flags1 == 0){
+//      Serial.println("Koin 100 masuk"); 
+      koinseratus = Firebase.getInt("nseratus");
+      koinseratus+=1;
+      nseratus=+100;
+      Firebase.setInt("nseratus", koinseratus);
+      Firebase.setString("history/" + String(jdata) + "/pukul", pukul);
+      Firebase.setString("history/" + String(jdata) + "/tanggal", tanggal);
+      Firebase.setString("history/" + String(jdata) + "/jumlah", satu);
+      jdata = jdata + 1;
+    }
+    flags1 = 1;
+  }
+  if(hasil1 == HIGH){
+//    Serial.println("Tidak Ada Hambatan");
+    flags1 = 0;
+  }
+  if(hasil2 == LOW ){
+    if(flags2 == 0){
+//      Serial.println("Koin 200 masuk"); 
+      koinduaratus = Firebase.getInt("nduaratus");
+      koinduaratus+=1;
+      nduaratus+=200; 
+      Firebase.setInt("nduaratus", koinduaratus);
+      Firebase.setString("history/" + String(jdata) + "/pukul", pukul);
+      Firebase.setString("history/" + String(jdata) + "/tanggal", tanggal);
+      Firebase.setString("history/" + String(jdata) + "/jumlah", dua);
+      jdata = jdata + 1;
+    }
+    flags2 = 1;
+  }
+  if(hasil2 == HIGH){
+//    Serial.println("Tidak Ada Hambatan");
+    flags2 = 0;
+  }
+  if(hasil3 == LOW ){
+    if(flags3 == 0){
+//      Serial.println("Koin 500 masuk");
+      koinlimaratus = Firebase.getInt("nlimaratus"); 
+      koinlimaratus+=1;
+      nlimaratus+=500;
+      Firebase.setInt("nlimaratus", koinlimaratus);
+      Firebase.setString("history/" + String(jdata) + "/pukul", pukul);
+      Firebase.setString("history/" + String(jdata) + "/tanggal", tanggal);
+      Firebase.setString("history/" + String(jdata) + "/jumlah", lima);
+      jdata = jdata + 1;
+
+    }
+    flags3 = 1;
+  }
+  if(hasil3 == HIGH){
+//    Serial.println("Tidak Ada Hambatan");
+    flags3 = 0;
+  }
+  if(hasil4 == LOW ){
+    if(flags4 == 0){
+//      Serial.println("Koin 1000 masuk");
+      koinseribu = Firebase.getInt("nseribu");
+      koinseribu+=1;
+      nseribu+=1000;
+      Firebase.setInt("nseribu", koinseribu);
+      Firebase.setString("history/" + String(jdata) + "/pukul", pukul);
+      Firebase.setString("history/" + String(jdata) + "/tanggal", tanggal);
+      Firebase.setString("history/" + String(jdata) + "/jumlah", nol);
+      jdata = jdata + 1;
+    }
+    flags4 = 1;
+  }
+  if(hasil4 == HIGH){
+//    Serial.println("Tidak Ada Hambatan");
+    flags4 = 0;
+  }
+  
+  totalkoin = nseratus+nduaratus+nlimaratus+nseribu;
+
+}
